@@ -1,12 +1,104 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Spin N Win</title>
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css">
-    <script src="js/phaser.min.js"></script>
-    <script src="js/main.js"></script>
+  <meta charset="UTF-8" />
+  <title>OpsMeeting Wheel</title>
+  <style>
+    /* — Game container & injected canvas — */
+    #game-container {
+      position: relative;
+      width: 950px;
+      height: 800px;
+      margin: 0 auto;
+      background: #222;
+      overflow: hidden;
+    }
+    /* Make the Phaser canvas keep its own aspect ratio:
+       fill the container’s height, auto-width, and center horizontally */
+    #game-container canvas {
+      position: absolute;
+      top: 0; 
+      left: 50%;
+      transform: translateX(-50%);
+      height: 100%;
+      width: auto;
+      display: block;
+      z-index: 1;
+    }
+
+    /* — Itaú logo — */
+    #itau-logo {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 10;
+      width: 80px;
+      pointer-events: none;
+    }
+
+    /* — Spin button — */
+    #spin-btn {
+      position: absolute;
+      bottom: 30px;
+      right: 40px;
+      left: auto;
+      z-index: 20;
+      padding: 12px 24px;
+      font: bold 20px Arial;
+      background: #fff;
+      color: #000;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #spin-btn:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  </style>
 </head>
 <body>
+  <div id="game-container">
+    <img id="itau-logo" src="images/itau-logo.png" alt="Itaú Logo">
+    <button id="spin-btn">Spin the Wheel</button>
+    <!-- no <canvas> tag here—Phaser will inject it -->
+  </div>
+
+  <!-- Phaser from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+  <!-- Your game logic -->
+  <script src="js/main.js"></script>
+  <script>
+    // Wire up the button once everything’s loaded
+    window.addEventListener("load", () => {
+      // Grab the scene by key
+      const playScene = game.scene.keys["PlayGame"];
+      const btn = document.getElementById("spin-btn");
+
+      btn.addEventListener("click", () => {
+        if (playScene.canSpin) {
+          playScene.spinWheel();
+          btn.disabled = true;
+        }
+      });
+
+      // Re-enable the button when the scene restarts
+      playScene.events.on("create", () => {
+        btn.disabled = false;
+      });
+
+      // Kick off an initial resize (so canvas appears right away)
+      window.dispatchEvent(new Event("resize"));
+    });
+
+    // Make the whole container scale to fit the browser window
+    window.addEventListener("resize", () => {
+      const c = document.getElementById("game-container");
+      const scale = Math.min(window.innerWidth / 950, window.innerHeight / 800);
+      c.style.transform = `scale(${scale})`;
+      c.style.transformOrigin = "top center";
+    });
+  </script>
 </body>
 </html>
+

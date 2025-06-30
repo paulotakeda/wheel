@@ -1,163 +1,153 @@
-// the game itself
-var game;
+// js/main.js
 
-var gameOptions = {
+var game;  // ensure global for button hookup
 
-    // slices (prizes) placed in the wheel
-    slices: 6,
+const gameOptions = {
+  sliceTeams: [
+    "Team Alpha", "Team Bravo", "Team Charlie", "Team Delta",
+    "Team Echo",  "Team Foxtrot", "Team Golf",    "Team Hotel",
+    "Team India"   // example extra slice
+  ],
+  rotationTime: 3000
+};
 
-    // prize names, starting from 12 o'clock going clockwise
-    slicePrizes: [
-        "🎉 5% OFF",
-        "🎉 10% OFF",
-        "🎉 15% OFF",
-        "🎉 25% OFF",
-        "🎉 50% OFF",
-        "🎉 FREE PASTRY 🍰"
-    ],
+window.addEventListener("load", () => {
+  game = new Phaser.Game({
+    type: Phaser.CANVAS,
+    parent: "game-container",
+    width: 950,
+    height: 800,
+    backgroundColor: 0x222222,
+    scene: [PlayGame]
+  });
+});
 
-    // wheel rotation duration, in milliseconds
-    rotationTime: 3000
-}
+class PlayGame extends Phaser.Scene {
+  constructor() {
+    super("PlayGame");
+  }
 
-// once the window loads...
-window.onload = function () {
+  create() {
+    // Canvas dimensions
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+    const cx = w / 2;
+    const cy = h / 2 + 50;  // small offset for title area
 
-    // game configuration object
-    var gameConfig = {
+    // Draw title at very top
+    this.add
+      .text(cx, 20,
+        "Welcome to OpsMeeting\nLet's spin the wheel",
+        { font: "bold 28px Arial", color: "#ffffff", align: "center" }
+      )
+      .setOrigin(0.5, 0);
 
-        // render type
-        type: Phaser.CANVAS,
+    // Wheel parameters
+    const sliceCount = gameOptions.sliceTeams.length;
+    const sliceAngle = 360 / sliceCount;
+    const radius     = Math.min(w, h - 200) * 0.4;
 
-        // game width, in pixels
-        width: 850,
+    // Container that will rotate
+    this.wheelContainer = this.add.container(cx, cy);
+    const g = this.add.graphics();
+    this.wheelContainer.add(g);
 
-        // game height, in pixels
-        height: 850,
+    // Colors (wrap if fewer than sliceCount)
+    const colors = [
+      0xe74c3c, 0xf1c40f, 0x2ecc71, 0x3498db,
+      0x9b59b6, 0xe67e22, 0x1abc9c, 0x34495e,
+      0xfd79a8
+    ];
 
-        // game background color
-        backgroundColor: 0x880044,
+    // Draw slices + labels
+    for (let i = 0; i < sliceCount; i++) {
+      // Draw wedge
+      g.fillStyle(colors[i % colors.length], 1);
+      g.slice(
+        0, 0, radius,
+        Phaser.Math.DegToRad(sliceAngle * i),
+        Phaser.Math.DegToRad(sliceAngle * (i + 1)),
+        false
+      );
+      g.fillPath();
 
-        // scenes used by the game
-        scene: [playGame]
+      // Compute mid‐angle in radians
+      const midRad = Phaser.Math.DegToRad(sliceAngle * (i + 0.5));
+      // Position the label at 45% radius
+      const labelRadius = radius * 0.45;
+      const tx = labelRadius * Math.cos(midRad);
+      const ty = labelRadius * Math.sin(midRad);
+
+      // Add text, rotated so its baseline follows the slice
+      this.wheelContainer.add(
+        this.add.text(tx, ty, gameOptions.sliceTeams[i], {
+          font: "bold 18px Arial",
+          color: "#ffffff"
+        })
+        .setOrigin(0.5)
+        .setRotation(midRad)  // align with slice
+      );
+    }
+
+    // Fixed pointer at top
+    const pointer = this.add.graphics({ x: cx, y: cy - radius - 20 });
+    pointer.fillStyle(0xffffff, 1);
+    pointer.beginPath();
+    pointer.moveTo(0, 0);
+    pointer.lineTo(-15, -30);
+    pointer.lineTo(15, -30);
+    pointer.closePath();
+    pointer.fillPath();
+
+    // Compute where to place the "Winner:" text between wheel bottom & button
+    const wheelBottom = cy + radius;
+    const btn = document.getElementById("spin-btn");
+    const btnHeight = btn.clientHeight;
+    const btnBottom = parseInt(getComputedStyle(btn).bottom, 10);
+    const buttonTop = h - btnBottom - btnHeight;
+    const resultY   = wheelBottom + 40 ;
+
+    // Result text (fixed)
+    this.resultText = this.add.text(
+      cx, resultY, "",
+      { font: "bold 32px Arial", color: "#ffffff" }
+    ).setOrigin(0.5);
+
+    // Hook up the HTML button
+    this.canSpin = true;
+    btn.disabled = false;
+    btn.onclick = () => {
+      if (!this.canSpin) return;
+      this.spinWheel();
+      btn.disabled = true;
     };
+  }
 
-    // game constructor
-    game = new Phaser.Game(gameConfig);
+  spinWheel() {
+    this.canSpin = false;
+    this.resultText.setText("");
 
-    // pure javascript to give focus to the page/frame and scale the game
-    window.focus()
-    resize();
-    window.addEventListener("resize", resize, false);
+    const sliceCount = gameOptions.sliceTeams.length;
+    const sliceAngle = 360 / sliceCount;
+    const rounds     = Phaser.Math.Between(4, 6);
+    const degrees    = Phaser.Math.Between(0, 360);
+
+    this.tweens.add({
+      targets: this.wheelContainer,
+      angle: 360 * rounds + degrees,
+      duration: gameOptions.rotationTime,
+      ease: "Cubic.easeOut",
+      onComplete: () => {
+        // find which slice lands at the fixed 270°
+        const finalDeg     = (degrees % 360 + 360) % 360;
+        const pointerAngle = (270 - finalDeg + 360) % 360;
+        const winnerIdx    = Math.floor(pointerAngle / sliceAngle);
+
+        this.resultText.setText(
+          "Winner: " + gameOptions.sliceTeams[winnerIdx]
+        );
+      }
+    });
+  }
 }
 
-// PlayGame scene
-class playGame extends Phaser.Scene {
-
-    // constructor
-    constructor() {
-        super("PlayGame");
-    }
-
-    // method to be executed when the scene preloads
-    preload() { // loading assets
-
-        this.load.image("wheel", window.location.href + "images/wheel.png");
-        this.load.image("pin", window.location.href + "images/pin.png");
-    }
-
-    // method to be executed once the scene has been created
-    create() {
-
-        // adding the wheel in the middle of the canvas
-        this.wheel = this.add.sprite(game.config.width / 2, game.config.height / 2, "wheel");
-
-        // adding the pin in the middle of the canvas
-        this.pin = this.add.sprite(game.config.width / 2, game.config.height / 2, "pin");
-
-        // adding the text field
-        this.prizeText = this.add.text(game.config.width / 2, game.config.height - 35, "SPIN TO WIN", {
-            font: "bold 64px Rajdhani",
-            align: "center",
-            color: "white"
-        });
-
-        // center the text
-        this.prizeText.setOrigin(0.5);
-
-        // the game has just started = we can spin the wheel
-        this.canSpin = true;
-
-        // waiting for your input, then calling "spinWheel" function
-        this.input.on("pointerdown", this.spinWheel, this);
-    }
-
-    // function to spin the wheel
-    spinWheel() {
-
-        // can we spin the wheel?
-        if (this.canSpin) {
-
-            // resetting text field
-            this.prizeText.setText("");
-
-            // the wheel will spin round from 2 to 4 times. This is just coreography
-            var rounds = Phaser.Math.Between(4, 6);
-
-            // then will rotate by a random number from 0 to 360 degrees. This is the actual spin
-            var degrees = Phaser.Math.Between(0, 360);
-
-            // before the wheel ends spinning, we already know the prize according to "degrees" rotation and the number of slices
-            var prize = gameOptions.slices - 1 - Math.floor(degrees / (360 / gameOptions.slices));
-
-            // now the wheel cannot spin because it's already spinning
-            this.canSpin = false;
-
-            // animation tweeen for the spin: duration 3s, will rotate by (360 * rounds + degrees) degrees
-            // the quadratic easing will simulate friction
-            this.tweens.add({
-
-                // adding the wheel to tween targets
-                targets: [this.wheel],
-
-                // angle destination
-                angle: 360 * rounds + degrees,
-
-                // tween duration
-                duration: gameOptions.rotationTime,
-
-                // tween easing
-                ease: "Cubic.easeOut",
-
-                // callback scope
-                callbackScope: this,
-
-                // function to be executed once the tween has been completed
-                onComplete: function (tween) {
-                    // displaying prize text
-                    this.prizeText.setText(gameOptions.slicePrizes[prize]);
-
-                    // player can spin again
-                    this.canSpin = false;
-                }
-            });
-        }
-    }
-}
-
-// pure javascript to scale the game
-function resize() {
-    var canvas = document.querySelector("canvas");
-    var windowWidth = window.innerWidth;
-    var windowHeight = window.innerHeight;
-    var windowRatio = windowWidth / windowHeight;
-    var gameRatio = game.config.width / game.config.height;
-    if (windowRatio < gameRatio) {
-        canvas.style.width = windowWidth + "px";
-        canvas.style.height = (windowWidth / gameRatio) + "px";
-    }
-    else {
-        canvas.style.width = (windowHeight * gameRatio) + "px";
-        canvas.style.height = windowHeight + "px";
-    }
-}
