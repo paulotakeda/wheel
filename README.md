@@ -7,7 +7,7 @@ ptakeda@gmail.com
 
 ## How to use this ?
 
-This is a docker file and it should just be executed as container:
+Either open the index.html file in your browser or run as a docker file and it should just be executed as container:
 
 ```
 cd <docker directory>
