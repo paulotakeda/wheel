@@ -4,11 +4,11 @@ var game;  // ensure global for button hookup
 
 const gameOptions = {
   sliceTeams: [
-    "Team Alpha", "Team Bravo", "Team Charlie", "Team Delta",
+    "Team Alpha", "Team Bravo", "Nicole", "Team Charlie", "Team Delta",
     "Team Echo",  "Team Foxtrot", "Team Golf",    "Team Hotel",
-    "Team India"   // example extra slice
+    "Team India", "Takeda"   // example extra slice
   ],
-  rotationTime: 3000
+  rotationTime: 6000
 };
 
 window.addEventListener("load", () => {
