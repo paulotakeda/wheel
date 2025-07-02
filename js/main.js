@@ -8,7 +8,7 @@ const gameOptions = {
     "Team Echo",  "Team Foxtrot", "Team Golf",    "Team Hotel",
     "Team India", "Takeda"   // example extra slice
   ],
-  rotationTime: 6000
+  rotationTime: 4000
 };
 
 window.addEventListener("load", () => {
